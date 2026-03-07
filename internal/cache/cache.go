@@ -31,8 +31,23 @@ func (c *Cache) SetValue(value string) {
 	c.cache[strconv.Itoa(hashVal)] = data
 }
 
-func (c *Cache) GetValue(key string) string {
-	return c.cache[key].Value
+func (c *Cache) GetValue(key string) (string, bool) {
+	data, ok := c.cache[key]
+
+	if !ok {
+		return "", false
+	}
+
+	if time.Now().After(data.ExpireAt) {
+		c.Delete(key)
+		return "", false
+	}
+
+	return data.Value, true
+}
+
+func (c *Cache) Delete(key string) {
+	delete(c.cache, key)
 }
 
 func getHash(val string) int {
