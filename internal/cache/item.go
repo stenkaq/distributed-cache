@@ -6,4 +6,3 @@ type Data struct {
 	Value    string
 	ExpireAt time.Time
 }
-
