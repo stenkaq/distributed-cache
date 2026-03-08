@@ -3,24 +3,21 @@ package serviceRegistry
 import (
 	"context"
 	"errors"
-	"time"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 var (
 	ErrServiceNotFound         = errors.New("service not found")
 	ErrServiceInstanceNotFound = errors.New("service instance not found")
-	ErrServiceAlreadyExists    = errors.New("service already exists")
 )
 
 type ServiceRegistryService interface {
 	GetService(ctx context.Context, id string) (*Service, error)
-	RegisterService(ctx context.Context, svc *Service) error
+	RegisterService(ctx context.Context, name string) (*Service, error)
 
 	GetServiceInstance(ctx context.Context, id string) (*ServiceInstance, error)
-	RegisterServiceInstance(ctx context.Context, instance *ServiceInstance) error
+	RegisterServiceInstance(ctx context.Context, serviceID string, host string, port int, status InstanceStatus) (*ServiceInstance, error)
 }
 
 type serviceRegistryService struct {
@@ -47,30 +44,12 @@ func (s *serviceRegistryService) GetService(ctx context.Context, id string) (*Se
 	return svc, nil
 }
 
-func (s *serviceRegistryService) RegisterService(ctx context.Context, svc *Service) error {
-	if svc == nil {
-		return errors.New("service must not be nil")
-	}
-	if svc.ID == bson.NilObjectID {
-		return errors.New("service id must not be empty")
-	}
-	if svc.Name == "" {
-		return errors.New("service name must not be empty")
+func (s *serviceRegistryService) RegisterService(ctx context.Context, name string) (*Service, error) {
+	if name == "" {
+		return nil, errors.New("service name must not be empty")
 	}
 
-	existing, err := s.GetService(ctx, svc.ID.Hex())
-	if err != nil && !errors.Is(err, ErrServiceNotFound) {
-		return err
-	}
-	if existing != nil {
-		return ErrServiceAlreadyExists
-	}
-
-	if svc.CreatedAt.IsZero() {
-		svc.CreatedAt = time.Now().UTC()
-	}
-
-	return s.repo.AddService(ctx, svc)
+	return s.repo.AddService(ctx, name)
 }
 
 func (s *serviceRegistryService) GetServiceInstance(ctx context.Context, id string) (*ServiceInstance, error) {
@@ -89,25 +68,21 @@ func (s *serviceRegistryService) GetServiceInstance(ctx context.Context, id stri
 	return instance, nil
 }
 
-func (s *serviceRegistryService) RegisterServiceInstance(ctx context.Context, instance *ServiceInstance) error {
-	if instance == nil {
-		return errors.New("instance must not be nil")
+func (s *serviceRegistryService) RegisterServiceInstance(ctx context.Context, serviceID string, host string, port int, status InstanceStatus) (*ServiceInstance, error) {
+	if serviceID == "" {
+		return nil, errors.New("instance service_id must not be empty")
 	}
-	if instance.ID == bson.NilObjectID {
-		return errors.New("instance id must not be empty")
+	if host == "" {
+		return nil, errors.New("instance host must not be empty")
 	}
-	if instance.ServiceID == bson.NilObjectID {
-		return errors.New("instance service_id must not be empty")
+	if port <= 0 {
+		return nil, errors.New("instance port must be a positive number")
 	}
 
-	_, err := s.GetService(ctx, instance.ServiceID.Hex())
+	svc, err := s.GetService(ctx, serviceID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if instance.LastHeartbeat.IsZero() {
-		instance.LastHeartbeat = time.Now().UTC()
-	}
-
-	return s.repo.AddServiceInstance(ctx, instance)
+	return s.repo.AddServiceInstance(ctx, svc.ID, host, port, status)
 }

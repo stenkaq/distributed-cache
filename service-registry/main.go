@@ -3,7 +3,10 @@ package main
 import (
 	"log"
 
+	"cache/service-registry/api"
 	serviceRegistry "cache/service-registry/internal"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
@@ -16,4 +19,10 @@ func main() {
 	repo := serviceRegistry.NewServiceRepository(db)
 	svc := serviceRegistry.NewServiceRegistryService(repo)
 	_ = svc
+
+	r := gin.Default()
+
+	api.RegisterRoutes(r, svc)
+
+	r.Run(":8080")
 }

@@ -2,6 +2,7 @@ package serviceRegistry
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -9,10 +10,10 @@ import (
 
 type ServiceRepository interface {
 	GetService(ctx context.Context, id string) (*Service, error)
-	AddService(ctx context.Context, svc *Service) error
+	AddService(ctx context.Context, name string) (*Service, error)
 
 	GetServiceInstance(ctx context.Context, id string) (*ServiceInstance, error)
-	AddServiceInstance(ctx context.Context, instance *ServiceInstance) error
+	AddServiceInstance(ctx context.Context, serviceID bson.ObjectID, host string, port int, status InstanceStatus) (*ServiceInstance, error)
 }
 
 type mongoServiceRepository struct {
@@ -40,9 +41,17 @@ func (r *mongoServiceRepository) GetService(ctx context.Context, id string) (*Se
 	return &svc, nil
 }
 
-func (r *mongoServiceRepository) AddService(ctx context.Context, svc *Service) error {
+func (r *mongoServiceRepository) AddService(ctx context.Context, name string) (*Service, error) {
+	svc := &Service{
+		ID:        bson.NewObjectID(),
+		Name:      name,
+		CreatedAt: time.Now().UTC(),
+	}
 	_, err := r.serviceColl.InsertOne(ctx, svc)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return svc, nil
 }
 
 func (r *mongoServiceRepository) GetServiceInstance(ctx context.Context, id string) (*ServiceInstance, error) {
@@ -58,7 +67,18 @@ func (r *mongoServiceRepository) GetServiceInstance(ctx context.Context, id stri
 	return &instance, nil
 }
 
-func (r *mongoServiceRepository) AddServiceInstance(ctx context.Context, svc *ServiceInstance) error {
-	_, err := r.serviceInstanceColl.InsertOne(ctx, svc)
-	return err
+func (r *mongoServiceRepository) AddServiceInstance(ctx context.Context, serviceID bson.ObjectID, host string, port int, status InstanceStatus) (*ServiceInstance, error) {
+	instance := &ServiceInstance{
+		ID:            bson.NewObjectID(),
+		ServiceID:     serviceID,
+		Host:          host,
+		Port:          port,
+		Status:        status,
+		LastHeartbeat: time.Now().UTC(),
+	}
+	_, err := r.serviceInstanceColl.InsertOne(ctx, instance)
+	if err != nil {
+		return nil, err
+	}
+	return instance, nil
 }
