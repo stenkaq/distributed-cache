@@ -2,6 +2,7 @@ package cache
 
 import (
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/spaolacci/murmur3"
@@ -10,6 +11,7 @@ import (
 type Cache struct {
 	cache map[string]Data
 	ttl   int
+	mu    sync.RWMutex
 }
 
 func NewCache() *Cache {
@@ -19,6 +21,9 @@ func NewCache() *Cache {
 }
 
 func (c *Cache) SetValue(value string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	hashVal := getHash(value)
 
 	expireAt := time.Now().Add(time.Duration(c.ttl) * time.Second)
@@ -32,7 +37,9 @@ func (c *Cache) SetValue(value string) {
 }
 
 func (c *Cache) GetValue(key string) (string, bool) {
+	c.mu.RLock()
 	data, ok := c.cache[key]
+	c.mu.RUnlock()
 
 	if !ok {
 		return "", false
@@ -47,6 +54,9 @@ func (c *Cache) GetValue(key string) (string, bool) {
 }
 
 func (c *Cache) Delete(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	delete(c.cache, key)
 }
 
