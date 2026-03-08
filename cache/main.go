@@ -1,3 +1,3 @@
-package main
+package cache
 
 func main() {}
