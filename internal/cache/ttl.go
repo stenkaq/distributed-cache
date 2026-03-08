@@ -3,13 +3,15 @@ package cache
 import "time"
 
 func (c *Cache) RunEvictionWorker() {
-	go func() {
-		ticker := time.NewTicker(time.Second)
+	c.ttlOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(time.Second)
 
-		for range ticker.C {
-			c.cleanup()
-		}
-	}()
+			for range ticker.C {
+				c.cleanup()
+			}
+		}()
+	})
 }
 
 func (c *Cache) cleanup() {

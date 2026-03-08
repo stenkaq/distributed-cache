@@ -9,22 +9,29 @@ import (
 )
 
 type Cache struct {
-	cache map[string]Data
-	ttl   int
-	mu    sync.RWMutex
+	cache   map[string]Data
+	ttl     int
+	ttlOnce sync.Once
+
+	mu sync.RWMutex
 }
 
-func NewCache() *Cache {
-	return &Cache{
+func NewCache(ttl int) *Cache {
+	c := &Cache{
 		cache: make(map[string]Data),
+		ttl:   ttl,
 	}
+
+	c.RunEvictionWorker()
+
+	return c
 }
 
-func (c *Cache) SetValue(value string) {
+func (c *Cache) SetValue(value string) string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	hashVal := getHash(value)
+	hashVal := strconv.Itoa(getHash(value))
 
 	expireAt := time.Now().Add(time.Duration(c.ttl) * time.Second)
 
@@ -33,10 +40,12 @@ func (c *Cache) SetValue(value string) {
 		ExpireAt: expireAt,
 	}
 
-	c.cache[strconv.Itoa(hashVal)] = data
+	c.cache[hashVal] = data
+
+	return hashVal
 }
 
-func (c *Cache) GetValue(key string) (string, bool) {
+func (c *Cache) Get(key string) (string, bool) {
 	c.mu.RLock()
 	data, ok := c.cache[key]
 	c.mu.RUnlock()
@@ -60,6 +69,6 @@ func (c *Cache) Delete(key string) {
 	delete(c.cache, key)
 }
 
-func getHash(val string) int {
-	return int(murmur3.Sum32([]byte(val)))
+func getHash(value string) int {
+	return int(murmur3.Sum32([]byte(value)))
 }
