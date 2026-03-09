@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 
-	"cache/service-registry/api"
-	serviceRegistry "cache/service-registry/internal"
+	"distributed-cache/service-registry/api"
+	serviceRegistry "distributed-cache/service-registry/internal"
 
 	"github.com/gin-gonic/gin"
 )

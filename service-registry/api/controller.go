@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	serviceRegistry "cache/service-registry/internal"
+	serviceRegistry "distributed-cache/service-registry/internal"
 )
 
 type Handler struct {
