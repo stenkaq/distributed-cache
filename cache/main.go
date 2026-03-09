@@ -30,17 +30,19 @@ func main() {
 
 	api.RegisterRoutes(r, c)
 
-	serviceID := registerService()
-	registerInstance(serviceID, host, randPort)
+	go r.Run(fmt.Sprintf(":%d", randPort))
+	serviceID := registerService(host, randPort)
 
-	r.Run(fmt.Sprintf(":%d", randPort))
+	fmt.Printf("serviceID: %s", serviceID)
 }
 
-func registerService() string {
+func registerService(host string, port int) string {
 	url := "http://service-registry:8080/services"
 
-	data := map[string]string{
+	data := map[string]interface{}{
 		"name": "cache",
+		"host": host,
+		"port": port,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -70,26 +72,4 @@ func registerService() string {
 	}
 
 	return svc.ID
-}
-
-func registerInstance(serviceID string, host string, port int) {
-	url := "http://service-registry:8080/instances"
-
-	data := map[string]interface{}{
-		"ID":     serviceID,
-		"host":   host,
-		"port":   port,
-		"status": "UP",
-	}
-
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		panic(err)
-	}
-	defer resp.Body.Close()
 }

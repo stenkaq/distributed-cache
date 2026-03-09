@@ -27,16 +27,22 @@ func RegisterRoutes(r *gin.Engine, service serviceRegistry.ServiceRegistryServic
 func (h *Handler) AddService(c *gin.Context) {
 	var body struct {
 		Name string `json:"name"`
+		Host string `json:"host"`
+		Port *int   `json:"port"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.Name == "" {
+	if err := c.ShouldBindJSON(&body); err != nil || body.Name == "" || body.Host == "" || body.Port == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
 		return
 	}
 
-	svc, err := h.service.RegisterService(c, body.Name)
+	svc, err := h.service.RegisterService(c, body.Name, body.Host, body.Port)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+
+	for range 5 {
+		h.service.RegisterServiceInstance(c, svc.ID.String(), body.Host, body.Port, "UP")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"id": svc.ID})
@@ -64,7 +70,7 @@ func (h *Handler) AddServiceInstance(c *gin.Context) {
 	var body struct {
 		ID     string                         `json:"id"`
 		Host   string                         `json:"host"`
-		Port   int                            `json:"port"`
+		Port   *int                           `json:"port"`
 		Status serviceRegistry.InstanceStatus `json:"status"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil || body.ID == "" {
