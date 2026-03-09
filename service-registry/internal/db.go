@@ -3,6 +3,7 @@ package serviceRegistry
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -21,7 +22,10 @@ type DB struct {
 }
 
 func NewDB() (*DB, error) {
-	uri := "http"
+	uri := os.Getenv("MONGO_URI")
+	if uri == "" {
+		uri = "mongodb://localhost:27017"
+	}
 
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {

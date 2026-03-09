@@ -1,0 +1,37 @@
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  service-registry:
+    build:
+      context: .
+      dockerfile: service-registry/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  cache:
+    build:
+      context: .
+      dockerfile: cache/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - service-registry
+
+volumes:
+  mongo_data:

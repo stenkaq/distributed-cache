@@ -12,7 +12,7 @@ import (
 
 func main() {
 	seed := rand.New(rand.NewSource(time.Now().UnixNano()))
-	randPort := seed.Intn(9000-9999) + 9000
+	randPort := seed.Intn(9999-9000) + 9000
 
 	c := cache.NewCache(60)
 
