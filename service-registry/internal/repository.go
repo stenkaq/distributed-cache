@@ -52,10 +52,13 @@ func (r *mongoServiceRepository) AddService(ctx context.Context, name string) (*
 			return nil, err
 		}
 
+		now := time.Now().UTC()
+
 		svc = &Service{
 			ID:        bson.NewObjectID(),
 			Name:      name,
-			CreatedAt: time.Now().UTC(),
+			CreatedAt: now,
+			UpdatedAt: now,
 		}
 		_, err = r.serviceColl.InsertOne(ctx, svc)
 

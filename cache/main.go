@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -23,7 +22,6 @@ func main() {
 		panic("Empty host env")
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	var randPort int
 
 	for {
