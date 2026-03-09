@@ -14,7 +14,7 @@ type ServiceRepository interface {
 	AddService(ctx context.Context, name string) (*Service, error)
 
 	GetServiceInstance(ctx context.Context, id string) (*ServiceInstance, error)
-	AddServiceInstance(ctx context.Context, serviceID bson.ObjectID, host string, port int, status InstanceStatus) (*ServiceInstance, error)
+	AddServiceInstance(ctx context.Context, serviceID string, host string, port int, status InstanceStatus) (*ServiceInstance, error)
 }
 
 type mongoServiceRepository struct {
@@ -81,7 +81,7 @@ func (r *mongoServiceRepository) GetServiceInstance(ctx context.Context, id stri
 	return &instance, nil
 }
 
-func (r *mongoServiceRepository) AddServiceInstance(ctx context.Context, serviceID bson.ObjectID, host string, port int, status InstanceStatus) (*ServiceInstance, error) {
+func (r *mongoServiceRepository) AddServiceInstance(ctx context.Context, serviceID string, host string, port int, status InstanceStatus) (*ServiceInstance, error) {
 	res := r.serviceInstanceColl.FindOne(ctx, bson.M{
 		"serviceID": serviceID,
 		"host":      host,
@@ -95,15 +95,22 @@ func (r *mongoServiceRepository) AddServiceInstance(ctx context.Context, service
 			return nil, err
 		}
 
+		oid, err := bson.ObjectIDFromHex(serviceID)
+
+		if err != nil {
+			fmt.Printf("Error converting to ObjectID\n")
+			return nil, err
+		}
+
 		instance = &ServiceInstance{
 			ID:            bson.NewObjectID(),
-			ServiceID:     serviceID,
+			ServiceID:     oid,
 			Host:          host,
 			Port:          port,
 			Status:        status,
 			LastHeartbeat: time.Now().UTC(),
 		}
-		_, err := r.serviceInstanceColl.InsertOne(ctx, instance)
+		_, err = r.serviceInstanceColl.InsertOne(ctx, instance)
 		if err != nil {
 			return nil, err
 		}

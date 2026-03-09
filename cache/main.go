@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -21,8 +23,17 @@ func main() {
 		panic("Empty host env")
 	}
 
-	seed := rand.New(rand.NewSource(time.Now().UnixNano()))
-	randPort := seed.Intn(9999-9000) + 9000
+	rand.Seed(time.Now().UnixNano())
+	var randPort int
+
+	for {
+		randPort = 9000 + rand.Intn(1000)
+		ln, err := net.Listen("tcp", fmt.Sprintf(":%d", randPort))
+		if err == nil {
+			ln.Close()
+			break
+		}
+	}
 
 	c := cache.NewCache(60)
 
@@ -30,10 +41,15 @@ func main() {
 
 	api.RegisterRoutes(r, c)
 
-	go r.Run(fmt.Sprintf(":%d", randPort))
+	go func() {
+		if err := r.Run(fmt.Sprintf(":%d", randPort)); err != nil {
+			log.Fatalf("Failed to run server: %v", err)
+		}
+	}()
 	serviceID := registerService(host, randPort)
 
 	fmt.Printf("serviceID: %s", serviceID)
+	select {}
 }
 
 func registerService(host string, port int) string {

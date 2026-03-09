@@ -79,10 +79,5 @@ func (s *serviceRegistryService) RegisterServiceInstance(ctx context.Context, se
 		return nil, errors.New("instance port must not be empty")
 	}
 
-	svc, err := s.GetService(ctx, serviceID)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.repo.AddServiceInstance(ctx, svc.ID, host, *port, status)
+	return s.repo.AddServiceInstance(ctx, serviceID, host, *port, status)
 }

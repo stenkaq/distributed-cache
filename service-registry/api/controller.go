@@ -42,7 +42,7 @@ func (h *Handler) AddService(c *gin.Context) {
 	}
 
 	for range 5 {
-		h.service.RegisterServiceInstance(c, svc.ID.String(), body.Host, body.Port, "UP")
+		h.service.RegisterServiceInstance(c, svc.ID.Hex(), body.Host, body.Port, "UP")
 	}
 
 	c.JSON(http.StatusOK, gin.H{"id": svc.ID})
