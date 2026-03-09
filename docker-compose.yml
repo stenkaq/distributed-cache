@@ -30,6 +30,8 @@ services:
       context: .
       dockerfile: cache/Dockerfile
     restart: unless-stopped
+    environment:
+      - HOST=cache
     depends_on:
       - service-registry
 

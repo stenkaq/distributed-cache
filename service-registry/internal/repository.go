@@ -2,6 +2,7 @@ package serviceRegistry
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -42,15 +43,28 @@ func (r *mongoServiceRepository) GetService(ctx context.Context, id string) (*Se
 }
 
 func (r *mongoServiceRepository) AddService(ctx context.Context, name string) (*Service, error) {
-	svc := &Service{
-		ID:        bson.NewObjectID(),
-		Name:      name,
-		CreatedAt: time.Now().UTC(),
+	res := r.serviceColl.FindOne(ctx, bson.M{"name": name})
+	svc := &Service{}
+
+	if err := res.Decode(svc); err != nil {
+		if err != mongo.ErrNoDocuments {
+			fmt.Println("Error creating a service")
+			return nil, err
+		}
+
+		svc = &Service{
+			ID:        bson.NewObjectID(),
+			Name:      name,
+			CreatedAt: time.Now().UTC(),
+		}
+		_, err = r.serviceColl.InsertOne(ctx, svc)
+
+		if err != nil {
+			fmt.Println("Error inserting service:", err)
+			return nil, err
+		}
 	}
-	_, err := r.serviceColl.InsertOne(ctx, svc)
-	if err != nil {
-		return nil, err
-	}
+
 	return svc, nil
 }
 
@@ -68,17 +82,32 @@ func (r *mongoServiceRepository) GetServiceInstance(ctx context.Context, id stri
 }
 
 func (r *mongoServiceRepository) AddServiceInstance(ctx context.Context, serviceID bson.ObjectID, host string, port int, status InstanceStatus) (*ServiceInstance, error) {
-	instance := &ServiceInstance{
-		ID:            bson.NewObjectID(),
-		ServiceID:     serviceID,
-		Host:          host,
-		Port:          port,
-		Status:        status,
-		LastHeartbeat: time.Now().UTC(),
+	res := r.serviceInstanceColl.FindOne(ctx, bson.M{
+		"serviceID": serviceID,
+		"host":      host,
+		"port":      port,
+	})
+	instance := &ServiceInstance{}
+
+	if err := res.Decode(*instance); err != nil {
+		if err != mongo.ErrNoDocuments {
+			fmt.Printf("Error creating an instance")
+			return nil, err
+		}
+
+		instance = &ServiceInstance{
+			ID:            bson.NewObjectID(),
+			ServiceID:     serviceID,
+			Host:          host,
+			Port:          port,
+			Status:        status,
+			LastHeartbeat: time.Now().UTC(),
+		}
+		_, err := r.serviceInstanceColl.InsertOne(ctx, instance)
+		if err != nil {
+			return nil, err
+		}
 	}
-	_, err := r.serviceInstanceColl.InsertOne(ctx, instance)
-	if err != nil {
-		return nil, err
-	}
+
 	return instance, nil
 }

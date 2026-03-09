@@ -39,7 +39,7 @@ func (h *Handler) AddService(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, svc)
+	c.JSON(http.StatusOK, gin.H{"id": svc.ID})
 }
 
 func (h *Handler) GetService(c *gin.Context) {
@@ -62,18 +62,17 @@ func (h *Handler) GetService(c *gin.Context) {
 
 func (h *Handler) AddServiceInstance(c *gin.Context) {
 	var body struct {
-		Id     string                         `json:"id"`
-		Name   string                         `json:"name"`
+		ID     string                         `json:"id"`
 		Host   string                         `json:"host"`
 		Port   int                            `json:"port"`
 		Status serviceRegistry.InstanceStatus `json:"status"`
 	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+	if err := c.ShouldBindJSON(&body); err != nil || body.ID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ServiceId is required"})
 		return
 	}
 
-	svc, err := h.service.RegisterServiceInstance(c, body.Name, body.Host, body.Port, body.Status)
+	svc, err := h.service.RegisterServiceInstance(c, body.ID, body.Host, body.Port, body.Status)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
