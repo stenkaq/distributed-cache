@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -43,16 +44,22 @@ func (h *Handler) AddService(c *gin.Context) {
 		return
 	}
 
-	for range 5 {
-		h.service.RegisterServiceInstance(c, serviceRegistry.RegisterServiceInstanceParams{
+	for i := range 5 {
+		vKey := fmt.Sprintf("%s:%d#%d", body.Host, *body.Port, i)
+		vHash := serviceRegistry.GetHash(vKey)
+
+		if _, err := h.service.RegisterServiceInstance(c, serviceRegistry.RegisterServiceInstanceParams{
 			ServiceID: svc.ID.Hex(),
 			Host:      body.Host,
 			Port:      body.Port,
+			Hash:      &vHash,
 			Status:    "UP",
-		})
+		}); err != nil {
+			log.Printf("failed to register service instance %d: %v", i, err)
+		}
 	}
 
-	c.JSON(http.StatusOK, gin.H{"id": svc.ID})
+	c.JSON(http.StatusCreated, gin.H{"id": svc.ID})
 }
 
 func (h *Handler) GetService(c *gin.Context) {

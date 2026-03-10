@@ -22,7 +22,7 @@ func (c *Cache) cleanup() {
 
 	for key, item := range c.cache {
 		if now.After(item.ExpireAt) {
-			c.Delete(key)
+			delete(c.cache, key)
 		}
 	}
 

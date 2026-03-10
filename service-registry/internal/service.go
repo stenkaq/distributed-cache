@@ -3,7 +3,9 @@ package serviceRegistry
 import (
 	"context"
 	"errors"
+	"fmt"
 	"iter"
+	"slices"
 
 	"github.com/spaolacci/murmur3"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -64,7 +66,7 @@ func (s *serviceRegistryService) RegisterService(ctx context.Context, name strin
 }
 
 func (s *serviceRegistryService) GetRing(ctx context.Context) iter.Seq2[int, *ServiceInstance] {
-	return s.GetRing(ctx)
+	return slices.All(s.ring.GetRing(ctx))
 }
 
 func (s *serviceRegistryService) RegisterServiceInstance(ctx context.Context, p RegisterServiceInstanceParams) (*ServiceInstance, error) {
@@ -78,17 +80,24 @@ func (s *serviceRegistryService) RegisterServiceInstance(ctx context.Context, p 
 		return nil, errors.New("instance port must not be empty")
 	}
 
+	var hash uint32
+	if p.Hash != nil {
+		hash = *p.Hash
+	} else {
+		hash = GetHash(fmt.Sprintf("%s:%d", p.Host, *p.Port))
+	}
+
 	instance, _ := s.ring.AddServiceInstance(ctx, AddServiceInstanceParams{
 		ServiceID: p.ServiceID,
 		Host:      p.Host,
 		Port:      *p.Port,
-		Hash:      *p.Hash,
+		Hash:      hash,
 		Status:    p.Status,
 	})
 
 	return instance, nil
 }
 
-func getHash() uint32 {
-	return murmur3.New32().Sum32()
+func GetHash(key string) uint32 {
+	return murmur3.Sum32([]byte(key))
 }
