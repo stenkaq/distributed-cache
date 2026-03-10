@@ -1,7 +1,9 @@
 package api
 
 import (
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 
@@ -20,6 +22,7 @@ func RegisterRoutes(r *gin.Engine, service serviceRegistry.ServiceRegistryServic
 	r.GET("/services/", h.GetService)
 	r.POST("/services/", h.AddService)
 
+	r.GET("/services/instances/")
 	r.POST("/services/instances/", h.AddServiceInstance)
 }
 
@@ -68,6 +71,47 @@ func (h *Handler) GetService(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, svc)
+}
+
+func (h *Handler) GetServiceInstance(c *gin.Context) {
+	hashKey := c.Query("hash_key")
+
+	val, err := strconv.Atoi(hashKey)
+	if err != nil {
+		log.Printf("Error converting hash_key to int: %s\n", hashKey)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hash_key"})
+		return
+	}
+
+	var firstInstance *serviceRegistry.ServiceInstance
+
+	ring := h.service.GetRing(c)
+
+	for _, instance := range ring {
+		if firstInstance == nil {
+			firstInstance = instance
+		}
+
+		if instance.Hash >= val {
+			c.JSON(http.StatusOK, gin.H{
+				"host": instance.Host,
+				"port": instance.Port,
+			})
+			return
+		}
+
+	}
+
+	if firstInstance != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"host": firstInstance.Host,
+			"port": firstInstance.Port,
+		})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "No service found",
+		})
+	}
 }
 
 func (h *Handler) AddServiceInstance(c *gin.Context) {
