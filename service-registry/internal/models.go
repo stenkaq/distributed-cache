@@ -22,10 +22,11 @@ type Service struct {
 }
 
 type ServiceInstance struct {
-	ID            bson.ObjectID          `bson:"_id,omitempty"  json:"id"`
-	ServiceID     bson.ObjectID          `bson:"service_id"     json:"service_id"`
-	Host          string                 `bson:"host"           json:"host"`
-	Port          int                    `bson:"port"           json:"port"`
-	Status        InstanceStatus         `bson:"status"         json:"status"`
-	LastHeartbeat time.Time              `bson:"last_heartbeat" json:"last_heartbeat"`
+	ID            bson.ObjectID  `bson:"_id,omitempty"  json:"id"`
+	ServiceID     bson.ObjectID  `bson:"service_id"     json:"service_id"`
+	Host          string         `bson:"host"           json:"host"`
+	Port          int            `bson:"port"           json:"port"`
+	Hash          int            `bson:"hash"           json:"hash"`
+	Status        InstanceStatus `bson:"status"         json:"status"`
+	LastHeartbeat time.Time      `bson:"last_heartbeat" json:"last_heartbeat"`
 }

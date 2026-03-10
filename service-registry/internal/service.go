@@ -3,7 +3,9 @@ package serviceRegistry
 import (
 	"context"
 	"errors"
+	"iter"
 
+	"github.com/spaolacci/murmur3"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
@@ -12,20 +14,29 @@ var (
 	ErrServiceInstanceNotFound = errors.New("service instance not found")
 )
 
+type RegisterServiceInstanceParams struct {
+	ServiceID string
+	Host      string
+	Port      *int
+	Hash      *uint32
+	Status    InstanceStatus
+}
+
 type ServiceRegistryService interface {
 	GetService(ctx context.Context, id string) (*Service, error)
 	RegisterService(ctx context.Context, name string, host string, port *int) (*Service, error)
 
-	GetServiceInstance(ctx context.Context, id string) (*ServiceInstance, error)
-	RegisterServiceInstance(ctx context.Context, serviceID string, host string, port *int, status InstanceStatus) (*ServiceInstance, error)
+	GetRing(ctx context.Context) iter.Seq2[int, *ServiceInstance]
+	RegisterServiceInstance(ctx context.Context, p RegisterServiceInstanceParams) (*ServiceInstance, error)
 }
 
 type serviceRegistryService struct {
 	repo ServiceRepository
+	ring ServiceInstanceRingRepository
 }
 
-func NewServiceRegistryService(repo ServiceRepository) ServiceRegistryService {
-	return &serviceRegistryService{repo: repo}
+func NewServiceRegistryService(repo ServiceRepository, ring ServiceInstanceRingRepository) ServiceRegistryService {
+	return &serviceRegistryService{repo: repo, ring: ring}
 }
 
 func (s *serviceRegistryService) GetService(ctx context.Context, id string) (*Service, error) {
@@ -52,32 +63,32 @@ func (s *serviceRegistryService) RegisterService(ctx context.Context, name strin
 	return s.repo.AddService(ctx, name)
 }
 
-func (s *serviceRegistryService) GetServiceInstance(ctx context.Context, id string) (*ServiceInstance, error) {
-	if id == "" {
-		return nil, errors.New("instance id must not be empty")
+func (s *serviceRegistryService) GetRing(ctx context.Context) iter.Seq2[int, *ServiceInstance] {
+	return s.GetRing(ctx)
+}
+
+func (s *serviceRegistryService) RegisterServiceInstance(ctx context.Context, p RegisterServiceInstanceParams) (*ServiceInstance, error) {
+	if p.ServiceID == "" {
+		return nil, errors.New("instance service_id must not be empty")
+	}
+	if p.Host == "" {
+		return nil, errors.New("instance host must not be empty")
+	}
+	if p.Port == nil {
+		return nil, errors.New("instance port must not be empty")
 	}
 
-	instance, err := s.repo.GetServiceInstance(ctx, id)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrServiceInstanceNotFound
-		}
-		return nil, err
-	}
+	instance, _ := s.ring.AddServiceInstance(ctx, AddServiceInstanceParams{
+		ServiceID: p.ServiceID,
+		Host:      p.Host,
+		Port:      *p.Port,
+		Hash:      *p.Hash,
+		Status:    p.Status,
+	})
 
 	return instance, nil
 }
 
-func (s *serviceRegistryService) RegisterServiceInstance(ctx context.Context, serviceID string, host string, port *int, status InstanceStatus) (*ServiceInstance, error) {
-	if serviceID == "" {
-		return nil, errors.New("instance service_id must not be empty")
-	}
-	if host == "" {
-		return nil, errors.New("instance host must not be empty")
-	}
-	if port == nil {
-		return nil, errors.New("instance port must not be empty")
-	}
-
-	return s.repo.AddServiceInstance(ctx, serviceID, host, *port, status)
+func getHash() uint32 {
+	return murmur3.New32().Sum32()
 }

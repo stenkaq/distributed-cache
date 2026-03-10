@@ -20,7 +20,6 @@ func RegisterRoutes(r *gin.Engine, service serviceRegistry.ServiceRegistryServic
 	r.GET("/services/", h.GetService)
 	r.POST("/services/", h.AddService)
 
-	r.GET("/services/instances/", h.GetServiceInstance)
 	r.POST("/services/instances/", h.AddServiceInstance)
 }
 
@@ -42,7 +41,12 @@ func (h *Handler) AddService(c *gin.Context) {
 	}
 
 	for range 5 {
-		h.service.RegisterServiceInstance(c, svc.ID.Hex(), body.Host, body.Port, "UP")
+		h.service.RegisterServiceInstance(c, serviceRegistry.RegisterServiceInstanceParams{
+			ServiceID: svc.ID.Hex(),
+			Host:      body.Host,
+			Port:      body.Port,
+			Status:    "UP",
+		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"id": svc.ID})
@@ -78,29 +82,16 @@ func (h *Handler) AddServiceInstance(c *gin.Context) {
 		return
 	}
 
-	svc, err := h.service.RegisterServiceInstance(c, body.ID, body.Host, body.Port, body.Status)
+	svc, err := h.service.RegisterServiceInstance(c, serviceRegistry.RegisterServiceInstanceParams{
+		ServiceID: body.ID,
+		Host:      body.Host,
+		Port:      body.Port,
+		Status:    "UP",
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, svc)
-}
-
-func (h *Handler) GetServiceInstance(c *gin.Context) {
-	var body struct {
-		Id string `json:"id"`
-	}
-	if err := c.ShouldBindJSON(&body); err != nil || body.Id == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
-		return
-	}
-
-	svc, err := h.service.GetServiceInstance(c, body.Id)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, svc)
 }
