@@ -35,5 +35,14 @@ services:
     depends_on:
       - service-registry
 
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - service-registry
+      - cache
+
 volumes:
   mongo_data:

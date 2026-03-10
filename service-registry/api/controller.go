@@ -22,7 +22,7 @@ func RegisterRoutes(r *gin.Engine, service serviceRegistry.ServiceRegistryServic
 	r.GET("/services/", h.GetService)
 	r.POST("/services/", h.AddService)
 
-	r.GET("/services/instances/")
+	r.GET("/services/instances/", h.GetServiceInstance)
 	r.POST("/services/instances/", h.AddServiceInstance)
 }
 
