@@ -83,12 +83,13 @@ func (h *Handler) GetService(c *gin.Context) {
 func (h *Handler) GetServiceInstance(c *gin.Context) {
 	hashKey := c.Query("hash_key")
 
-	val, err := strconv.Atoi(hashKey)
+	parsed, err := strconv.ParseUint(hashKey, 10, 32)
 	if err != nil {
-		log.Printf("Error converting hash_key to int: %s\n", hashKey)
+		log.Printf("Error converting hash_key to uint32: %s\n", hashKey)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid hash_key"})
 		return
 	}
+	val := uint32(parsed)
 
 	var firstInstance *serviceRegistry.ServiceInstance
 

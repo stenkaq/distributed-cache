@@ -32,7 +32,7 @@ func (r *ringRepository) GetRing(ctx context.Context) []*ServiceInstance {
 
 func (r *ringRepository) AddServiceInstance(ctx context.Context, p AddServiceInstanceParams) (*ServiceInstance, bool) {
 	instance := &ServiceInstance{
-		Hash: int(p.Hash),
+		Hash: p.Hash,
 		Host: p.Host,
 		Port: p.Port,
 	}

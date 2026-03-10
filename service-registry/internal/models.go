@@ -26,7 +26,7 @@ type ServiceInstance struct {
 	ServiceID     bson.ObjectID  `bson:"service_id"     json:"service_id"`
 	Host          string         `bson:"host"           json:"host"`
 	Port          int            `bson:"port"           json:"port"`
-	Hash          int            `bson:"hash"           json:"hash"`
+	Hash          uint32         `bson:"hash"           json:"hash"`
 	Status        InstanceStatus `bson:"status"         json:"status"`
 	LastHeartbeat time.Time      `bson:"last_heartbeat" json:"last_heartbeat"`
 }
