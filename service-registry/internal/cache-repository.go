@@ -2,9 +2,7 @@ package serviceRegistry
 
 import (
 	"context"
-	"iter"
-
-	"github.com/maypok86/otter/v2"
+	"sort"
 )
 
 type AddServiceInstanceParams struct {
@@ -16,26 +14,40 @@ type AddServiceInstanceParams struct {
 }
 
 type ServiceInstanceRingRepository interface {
-	GetRing(ctx context.Context) iter.Seq2[int, *ServiceInstance]
+	GetRing(ctx context.Context) []*ServiceInstance
 	AddServiceInstance(ctx context.Context, p AddServiceInstanceParams) (*ServiceInstance, bool)
 }
 
 type ringRepository struct {
-	ring otter.Cache[int, *ServiceInstance]
+	ring []*ServiceInstance
 }
 
-func NewRingRepository(c otter.Cache[int, *ServiceInstance]) ServiceInstanceRingRepository {
+func NewRingRepository(c []*ServiceInstance) ServiceInstanceRingRepository {
 	return &ringRepository{ring: c}
 }
 
-func (r *ringRepository) GetRing(ctx context.Context) iter.Seq2[int, *ServiceInstance] {
-	return r.ring.All()
+func (r *ringRepository) GetRing(ctx context.Context) []*ServiceInstance {
+	return r.ring
 }
 
 func (r *ringRepository) AddServiceInstance(ctx context.Context, p AddServiceInstanceParams) (*ServiceInstance, bool) {
-	instance := &ServiceInstance{}
+	instance := &ServiceInstance{
+		Hash: int(p.Hash),
+		Host: p.Host,
+		Port: p.Port,
+	}
 
-	val, created := r.ring.SetIfAbsent(int(p.Hash), instance)
+	idx := sort.Search(len(r.ring), func(i int) bool {
+		return r.ring[i].Hash >= instance.Hash
+	})
 
-	return val, created
+	if idx < len(r.ring) && r.ring[idx].Hash == instance.Hash {
+		return r.ring[idx], false
+	}
+
+	r.ring = append(r.ring, nil)
+	copy(r.ring[idx+1:], r.ring[idx:])
+	r.ring[idx] = instance
+
+	return instance, true
 }
